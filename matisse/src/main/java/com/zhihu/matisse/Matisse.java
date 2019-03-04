@@ -138,6 +138,10 @@ public final class Matisse {
         return new SelectionCreator(this, mimeTypes, mediaTypeExclusive);
     }
 
+    public SelectionCreator capture() {
+        return new SelectionCreator(this);
+    }
+
     @Nullable
     Activity getActivity() {
         return mContext.get();

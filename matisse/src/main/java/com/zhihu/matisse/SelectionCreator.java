@@ -30,6 +30,7 @@ import com.zhihu.matisse.engine.ImageEngine;
 import com.zhihu.matisse.filter.Filter;
 import com.zhihu.matisse.internal.entity.CaptureStrategy;
 import com.zhihu.matisse.internal.entity.SelectionSpec;
+import com.zhihu.matisse.internal.utils.MediaStoreCompat;
 import com.zhihu.matisse.listener.OnCheckedListener;
 import com.zhihu.matisse.listener.OnSelectedListener;
 import com.zhihu.matisse.ui.MatisseActivity;
@@ -85,6 +86,12 @@ public final class SelectionCreator {
     })
     @Retention(RetentionPolicy.SOURCE)
     @interface ScreenOrientation {
+    }
+
+    SelectionCreator(Matisse matisse) {
+        mMatisse = matisse;
+        mSelectionSpec = SelectionSpec.getCleanInstance();
+        mSelectionSpec.orientation = SCREEN_ORIENTATION_UNSPECIFIED;
     }
 
     /**
@@ -163,7 +170,7 @@ public final class SelectionCreator {
      *
      * @param maxImageSelectable Maximum selectable count for image.
      * @param maxVideoSelectable Maximum selectable count for video.
-     * @return  {@link SelectionCreator} for fluent API.
+     * @return {@link SelectionCreator} for fluent API.
      */
     public SelectionCreator maxSelectablePerMediaType(int maxImageSelectable, int maxVideoSelectable) {
         if (maxImageSelectable < 1 || maxVideoSelectable < 1)
@@ -216,6 +223,7 @@ public final class SelectionCreator {
 
     /**
      * Determines Whether to hide top and bottom toolbar in PreView mode ,when user tap the picture
+     *
      * @param enable
      * @return {@link SelectionCreator} for fluent API.
      */
@@ -364,4 +372,17 @@ public final class SelectionCreator {
         }
     }
 
+    public void forResult(int requestCode, MediaStoreCompat mediaStoreCompat) {
+        Activity activity = mMatisse.getActivity();
+        if (activity == null) {
+            return;
+        }
+        if (mediaStoreCompat == null) {
+            return;
+        }
+        if (mSelectionSpec.captureStrategy == null)
+            throw new RuntimeException("Don't forget to set CaptureStrategy.");
+        mediaStoreCompat.setCaptureStrategy(mSelectionSpec.captureStrategy);
+        mediaStoreCompat.dispatchCaptureIntent(activity, requestCode);
+    }
 }

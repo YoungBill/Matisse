@@ -37,9 +37,11 @@ import com.zhihu.matisse.MimeType;
 import com.zhihu.matisse.engine.impl.PicassoEngine;
 import com.zhihu.matisse.filter.Filter;
 import com.zhihu.matisse.internal.entity.CaptureStrategy;
+import com.zhihu.matisse.internal.utils.MediaStoreCompat;
 import com.zhihu.matisse.listener.OnCheckedListener;
 import com.zhihu.matisse.listener.OnSelectedListener;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import io.reactivex.Observer;
@@ -48,8 +50,11 @@ import io.reactivex.disposables.Disposable;
 public class SampleActivity extends AppCompatActivity implements View.OnClickListener {
 
     private static final int REQUEST_CODE_CHOOSE = 23;
+    private static final int REQUEST_CODE_CAPTURE = 24;
 
     private UriAdapter mAdapter;
+
+    private MediaStoreCompat mMediaStoreCompat;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,10 +62,13 @@ public class SampleActivity extends AppCompatActivity implements View.OnClickLis
         setContentView(R.layout.activity_main);
         findViewById(R.id.zhihu).setOnClickListener(this);
         findViewById(R.id.dracula).setOnClickListener(this);
+        findViewById(R.id.capture).setOnClickListener(this);
 
         RecyclerView recyclerView = (RecyclerView) findViewById(R.id.recyclerview);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(mAdapter = new UriAdapter());
+
+        mMediaStoreCompat = new MediaStoreCompat(SampleActivity.this);
     }
 
     @Override
@@ -83,7 +91,7 @@ public class SampleActivity extends AppCompatActivity implements View.OnClickLis
                                             .countable(true)
                                             .capture(true)
                                             .captureStrategy(
-                                                    new CaptureStrategy(true, "com.zhihu.matisse.sample.fileprovider","test"))
+                                                    new CaptureStrategy(true, "com.zhihu.matisse.sample.fileprovider", "test"))
                                             .maxSelectable(9)
                                             .addFilter(new GifSizeFilter(320, 320, 5 * Filter.K * Filter.K))
                                             .gridExpectedSize(
@@ -125,6 +133,12 @@ public class SampleActivity extends AppCompatActivity implements View.OnClickLis
                                             .imageEngine(new PicassoEngine())
                                             .forResult(REQUEST_CODE_CHOOSE);
                                     break;
+                                case R.id.capture:
+                                    Matisse.from(SampleActivity.this)
+                                            .capture()
+                                            .captureStrategy(new CaptureStrategy(true, "com.zhihu.matisse.sample.fileprovider", "test"))
+                                            .forResult(REQUEST_CODE_CAPTURE, mMediaStoreCompat);
+                                    break;
                                 default:
                                     break;
                             }
@@ -150,9 +164,19 @@ public class SampleActivity extends AppCompatActivity implements View.OnClickLis
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_CODE_CHOOSE && resultCode == RESULT_OK) {
-            mAdapter.setData(Matisse.obtainResult(data), Matisse.obtainPathResult(data));
-            Log.e("OnActivityResult ", String.valueOf(Matisse.obtainOriginalState(data)));
+        if (resultCode == RESULT_OK) {
+            if (requestCode == REQUEST_CODE_CHOOSE) {
+                mAdapter.setData(Matisse.obtainResult(data), Matisse.obtainPathResult(data));
+                Log.e("OnActivityResult ", String.valueOf(Matisse.obtainOriginalState(data)));
+            } else if (requestCode == REQUEST_CODE_CAPTURE) {
+                Uri contentUri = mMediaStoreCompat.getCurrentPhotoUri();
+                String path = mMediaStoreCompat.getCurrentPhotoPath();
+                ArrayList<String> selectedPath = new ArrayList<>();
+                selectedPath.add(path);
+                ArrayList<Uri> selected = new ArrayList<>();
+                selected.add(contentUri);
+                mAdapter.setData(selected, selectedPath);
+            }
         }
     }
 
